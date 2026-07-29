@@ -155,29 +155,33 @@ button, a { touch-action: manipulation; }
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
 }
-.nav-glyph { width: 16px; height: 16px; transition: background .15s, box-shadow .15s; }
-.nav-glyph--diamond { clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); }
-.nav-glyph--square  { }
-.nav-glyph--triangle{ clip-path: polygon(50% 0,100% 100%,0 100%); }
-.nav-glyph--bars     {
-  width: 16px; height: 2px; background: rgba(220,248,232,.32);
-  box-shadow: 0 5px 0 rgba(220,248,232,.32), 0 10px 0 rgba(220,248,232,.32);
+/* Nav glyphs are SVG, not clip-path'd divs: a CSS `border` on a
+   `clip-path`'d box gets clipped along with everything else, which is
+   what made the unselected diamond/triangle render as corrupted partial
+   shapes. SVG stroke/fill never has that problem — inactive is a true
+   hollow outline of the same shape, active is the shape filled + glowing. */
+.nav-glyph-svg { display: block; overflow: visible; }
+.nav-glyph-shape {
+  fill: none;
+  stroke: rgba(220,248,232,.32);
+  stroke-width: 1.5;
+  transition: fill .15s, stroke .15s, filter .15s;
 }
-.nav-glyph:not(.nav-glyph--bars):not(.active) {
-  border: 1.5px solid rgba(220,248,232,.32);
-  background: transparent;
+.nav-btn.active .nav-glyph-shape {
+  fill: var(--nav-color);
+  stroke: none;
+  filter: drop-shadow(0 0 4px var(--nav-glow));
 }
-.nav-glyph.active:not(.nav-glyph--bars) {
-  border: none;
-  background: var(--nav-color);
-  box-shadow: 0 0 14px var(--nav-glow);
+.nav-glyph-bar {
+  stroke: rgba(220,248,232,.32);
+  stroke-width: 2;
+  stroke-linecap: square;
+  transition: stroke .15s, filter .15s;
 }
-.nav-glyph--bars.active {
-  background: var(--nav-color);
-  box-shadow: 0 0 6px var(--nav-glow);
+.nav-btn.active .nav-glyph-bar {
+  stroke: var(--nav-color);
+  filter: drop-shadow(0 0 3px var(--nav-glow));
 }
-.nav-glyph--bars.active,
-.nav-glyph--bars.active { box-shadow: 0 5px 0 var(--nav-color), 0 10px 0 var(--nav-color); }
 .nav-version {
   margin-top: auto;
   margin-bottom: calc(34px + env(safe-area-inset-bottom));
@@ -293,6 +297,15 @@ button, a { touch-action: manipulation; }
   margin-top: 10px;
 }
 .hero-number--danger { color: var(--danger); }
+/* Spelled-out "17 Minutes" / "2 Hours 30 Minutes" form used for the Home
+   balance readout — too long for the 66px digit size, so it steps down
+   and is allowed to wrap instead of overflowing the panel. */
+.hero-number--long {
+  font-size: clamp(28px, 9vw, 40px);
+  line-height: 1.15;
+  letter-spacing: 0;
+  white-space: normal;
+}
 
 .panel-footer {
   display: flex;

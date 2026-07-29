@@ -1,6 +1,6 @@
 // Cache-first app shell. PLAN.md §10.3. Bump CACHE on every deploy so
 // activate() sweeps the stale one.
-const CACHE = 'tc-v1';
+const CACHE = 'tc-v2';
 
 const ASSETS = [
   './',
