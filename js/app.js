@@ -20,6 +20,48 @@ const navRailEl = document.getElementById('navRail');
 
 let currentCleanup = null;
 
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+// Nav glyphs are real SVG shapes, not clip-path'd divs — a CSS `border`
+// on a clip-path'd box gets clipped along with everything else, which is
+// what made the unselected diamond/triangle render as corrupted partial
+// shapes. SVG stroke/fill has no such problem: inactive is a clean hollow
+// outline of the same shape, active is the shape filled solid + glowing.
+function buildGlyphSvg(shape) {
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.classList.add('nav-glyph-svg');
+
+  if (shape === 'diamond' || shape === 'triangle') {
+    const points = shape === 'diamond' ? '8,1 15,8 8,15 1,8' : '8,1 15,15 1,15';
+    const poly = document.createElementNS(SVGNS, 'polygon');
+    poly.setAttribute('points', points);
+    poly.classList.add('nav-glyph-shape');
+    svg.appendChild(poly);
+  } else if (shape === 'square') {
+    const rect = document.createElementNS(SVGNS, 'rect');
+    rect.setAttribute('x', '1.5');
+    rect.setAttribute('y', '1.5');
+    rect.setAttribute('width', '13');
+    rect.setAttribute('height', '13');
+    rect.classList.add('nav-glyph-shape');
+    svg.appendChild(rect);
+  } else if (shape === 'bars') {
+    for (const y of [3, 8, 13]) {
+      const line = document.createElementNS(SVGNS, 'line');
+      line.setAttribute('x1', '1');
+      line.setAttribute('x2', '15');
+      line.setAttribute('y1', String(y));
+      line.setAttribute('y2', String(y));
+      line.classList.add('nav-glyph-bar');
+      svg.appendChild(line);
+    }
+  }
+  return svg;
+}
+
 function buildNavRail() {
   navRailEl.replaceChildren();
   for (const item of NAV_ITEMS) {
@@ -27,12 +69,10 @@ function buildNavRail() {
     btn.className = 'nav-btn';
     btn.dataset.screen = item.screen;
     btn.setAttribute('aria-label', item.screen);
+    btn.style.setProperty('--nav-color', item.color);
+    btn.style.setProperty('--nav-glow', item.glow);
 
-    const glyph = document.createElement('span');
-    glyph.className = `nav-glyph nav-glyph--${item.shape}`;
-    glyph.style.setProperty('--nav-color', item.color);
-    glyph.style.setProperty('--nav-glow', item.glow);
-    btn.appendChild(glyph);
+    btn.appendChild(buildGlyphSvg(item.shape));
 
     btn.addEventListener('click', () => {
       if (location.hash !== `#/${item.screen}`) location.hash = `#/${item.screen}`;
@@ -47,8 +87,7 @@ function buildNavRail() {
 
 function updateNavActive(screen) {
   for (const btn of navRailEl.querySelectorAll('.nav-btn')) {
-    const glyph = btn.querySelector('.nav-glyph');
-    glyph.classList.toggle('active', btn.dataset.screen === screen);
+    btn.classList.toggle('active', btn.dataset.screen === screen);
   }
 }
 

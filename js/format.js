@@ -20,6 +20,25 @@ export function fmtHM(sec) {
   return (m < 0 ? MINUS : '') + body;
 }
 
+function plural(n, word) {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
+// Same signed-floor rule as fmtHM, but spelled out — for the one spot
+// (Home's hero balance) with room to say "Minutes" instead of "M".
+// 9000 -> "2 Hours 30 Minutes", 60 -> "1 Minute", -330 -> "-6 Minutes"
+export function fmtLongMinutes(sec) {
+  const m = Math.floor(sec / 60);
+  const a = Math.abs(m);
+  const h = Math.floor(a / 60);
+  const mm = a % 60;
+  let body;
+  if (h > 0 && mm > 0) body = `${plural(h, 'Hour')} ${plural(mm, 'Minute')}`;
+  else if (h > 0) body = plural(h, 'Hour');
+  else body = plural(mm, 'Minute');
+  return (m < 0 ? MINUS : '') + body;
+}
+
 // HH:MM:SS clock, always non-negative.
 export function clock(sec) {
   sec = Math.max(0, Math.floor(sec));
