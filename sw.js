@@ -12,7 +12,7 @@
 // when there's no network at all — which is the one case "offline" is
 // actually asking for. Bump CACHE on every deploy regardless, so
 // activate() sweeps the previous (possibly torn) cache.
-const CACHE = 'tc-v3';
+const CACHE = 'tc-v4';
 
 const ASSETS = [
   './',

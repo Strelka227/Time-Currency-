@@ -1,7 +1,7 @@
 // Home / dashboard. PLAN.md §6.1 — from home-2d.html, minus the progress
 // bar and daily cap (§3.3), plus the negative/debt treatment (§1.2).
 import { store } from '../store.js';
-import { fmtHM, fmtLongMinutes } from '../format.js';
+import { fmtHM, fmtLongParts } from '../format.js';
 import { h, divider, entryCard, emptyCard, vibrate, chip } from '../ui.js';
 import { installPrompt } from '../pwa.js';
 
@@ -24,6 +24,7 @@ export default {
     function build() {
       const balanceSec = store.balanceSec();
       const negative = balanceSec < 0;
+      const parts = fmtLongParts(balanceSec);
       const recent = store.entriesSorted().slice(0, 3);
       const todayEarn = sumToday('earn');
       const todaySpend = sumToday('spend');
@@ -52,8 +53,12 @@ export default {
               h('div', { class: 'panel-label' + (negative ? ' panel-label--accent-danger' : ' panel-label--accent') },
                 negative ? 'IN DEBT' : 'FEED UNLOCK')
             ]),
-            h('div', { class: 'hero-number hero-number--long' + (negative ? ' hero-number--danger' : '') },
-              fmtLongMinutes(balanceSec))
+            h('div', { class: 'hero-stack' + (negative ? ' hero-stack--danger' : '') }, [
+              // Sign rides on whichever row comes first, so a debt reads
+              // "−2 Hours / 30 Minutes" rather than losing the minus.
+              parts.hours ? h('div', { class: 'hero-line' }, parts.sign + parts.hours) : null,
+              parts.minutes ? h('div', { class: 'hero-line' }, (parts.hours ? '' : parts.sign) + parts.minutes) : null
+            ])
           ]),
 
           h('div', { class: 'stat-strip' }, [

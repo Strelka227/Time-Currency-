@@ -297,15 +297,25 @@ button, a { touch-action: manipulation; }
   margin-top: 10px;
 }
 .hero-number--danger { color: var(--danger); }
-/* Spelled-out "17 Minutes" / "2 Hours 30 Minutes" form used for the Home
-   balance readout — too long for the 66px digit size, so it steps down
-   and is allowed to wrap instead of overflowing the panel. */
-.hero-number--long {
-  font-size: clamp(28px, 9vw, 40px);
-  line-height: 1.15;
-  letter-spacing: 0;
-  white-space: normal;
+
+/* Home's spelled-out balance readout. Hours and minutes each get their
+   own row, so "2 Hours 30 Minutes" reads as a deliberate two-line block
+   instead of wrapping wherever the box happens to run out of width.
+   Each row is nowrap — with the phrase split, no single row is ever long
+   enough to need wrapping, which is what makes the layout predictable. */
+.hero-stack {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
+.hero-line {
+  font: 300 clamp(30px, 10.5vw, 46px)/1.06 Roboto, sans-serif;
+  letter-spacing: -.015em;
+  color: var(--fg);
+  white-space: nowrap;
+}
+.hero-stack--danger .hero-line { color: var(--danger); }
 
 .panel-footer {
   display: flex;
@@ -518,14 +528,23 @@ button, a { touch-action: manipulation; }
   border-color: rgba(255,171,77,.95);
 }
 
-/* three-up app select (Spend) */
-.app-select { display: flex; gap: 8px; margin-top: 12px; }
+/* app select (Spend) — 3 across, 2 rows. Equal-width grid tracks keep
+   every button exactly the same size regardless of label length. */
+.app-select {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
 .app-btn {
   all: unset;
   cursor: pointer;
-  flex: 1;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 10px 0 8px;
+  padding: 10px 2px 8px;
   font: 600 10px 'JetBrains Mono', monospace;
   letter-spacing: .1em;
   background: linear-gradient(180deg, rgba(160,255,200,.07), rgba(160,255,200,.02));
@@ -534,13 +553,25 @@ button, a { touch-action: manipulation; }
   color: var(--fg-50);
   min-height: 44px;
 }
-.app-btn:first-child { clip-path: polygon(8px 0,100% 0,100% 100%,0 100%,0 8px); }
-.app-btn:last-child  { clip-path: polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%); }
+/* Notch only the four outer corners of the 2x3 block, so the grid reads
+   as one panel rather than six unrelated chips. */
+.app-select .app-btn:nth-child(1) { clip-path: polygon(8px 0,100% 0,100% 100%,0 100%,0 8px); }
+.app-select .app-btn:nth-child(3) { clip-path: polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%); }
+.app-select .app-btn:nth-child(4) { clip-path: polygon(0 0,100% 0,100% 100%,8px 100%,0 calc(100% - 8px)); }
+.app-select .app-btn:nth-child(6) { clip-path: polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%); }
 .app-btn.active {
   background: linear-gradient(180deg, rgba(255,171,77,.3), rgba(255,171,77,.1));
   border-color: rgba(255,171,77,.95);
   color: var(--fg);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 3px 0 rgba(0,0,0,.5);
+}
+/* Placeholder slots: present so the grid keeps its shape, but inert —
+   there is no spend logic behind them yet, and a selectable "WIP" would
+   only write meaningless entries into the ledger. */
+.app-btn--wip {
+  opacity: .34;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* ---------- stopwatch / manual panels ---------- */

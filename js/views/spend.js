@@ -2,15 +2,20 @@
 // (§1.2): the CTA never blocks, it just warns via the danger palette and
 // shows the projected balance before committing.
 import { store } from '../store.js';
-import { fmtHM, clock, hhmm, newId } from '../format.js';
+import { fmtHM, clock, hhmm, newId, debitSecFor, spendDivisorFor } from '../format.js';
 import { h, divider, entryCard, emptyCard, vibrate, chip } from '../ui.js';
 import { updateSeg } from '../seg.js';
 import * as sw from '../stopwatch.js';
 
+// Order matters: this is the 2x3 grid, filled left-to-right, top-to-bottom.
+// `wip: true` slots are placeholders — rendered for layout, not selectable.
 const APPS = [
   { id: 'TIKTOK', label: 'TIKTOK' },
   { id: 'INSTAGRAM', label: 'INSTAGRAM' },
-  { id: 'AUXILIARY', label: 'AUX' }
+  { id: 'AUXILIARY', label: 'AUX' },
+  { id: 'YOUTUBE', label: 'YOUTUBE' },
+  { id: 'WIP_1', label: 'WIP', wip: true },
+  { id: 'WIP_2', label: 'WIP', wip: true }
 ];
 
 export default {
@@ -20,8 +25,15 @@ export default {
     let tickTimer = null;
     let refs = {};
 
-    function spentSec() {
+    // The raw session length — how long the feed is unlocked for. What
+    // that actually costs the bank is a separate number (see debitSec),
+    // because some apps are discounted.
+    function unlockedSec() {
       return draft.mode === 'stopwatch' ? sw.elapsedSec(draft) : draft.manualMin * 60;
+    }
+
+    function debitSec() {
+      return debitSecFor(draft.app, unlockedSec());
     }
 
     function persist() {
@@ -41,23 +53,28 @@ export default {
     }
 
     function tick() {
-      const spent = spentSec();
-      if (refs.segBox) updateSeg(refs.segBox, clock(spent), '#ffc478', 26);
-      if (refs.spendCell) refs.spendCell.textContent = '−' + fmtHM(spent);
-      const remain = store.balanceSec() - spent;
+      const unlocked = unlockedSec();
+      const debit = debitSec();
+      if (refs.segBox) updateSeg(refs.segBox, clock(unlocked), '#ffc478', 26);
+      if (refs.spendCell) refs.spendCell.textContent = '−' + fmtHM(debit);
+      const remain = store.balanceSec() - debit;
       if (refs.remainCell) {
         refs.remainCell.textContent = fmtHM(remain);
         refs.remainCell.className = 'preview-value' + (remain < 0 ? ' preview-value--danger' : '');
       }
-      if (refs.ctaBtn) refreshCta(refs.ctaBtn, spent, remain);
+      if (refs.ctaBtn) refreshCta(refs.ctaBtn, unlocked, remain);
     }
 
-    function refreshCta(btn, spent, remain) {
+    // The CTA names the unlock duration (what you get) and, when it would
+    // put you under, the resulting balance. The cost itself lives in the
+    // BALANCE PREVIEW strip — cramming all three into one button label
+    // overflows it at Pixel widths once values reach "1H 30M".
+    function refreshCta(btn, unlocked, remain) {
       const danger = remain < 0;
-      btn.className = 'btn ' + (danger ? 'btn--danger cta-danger' : 'btn--orange cta-orange') + (spent > 0 ? '' : ' cta-disabled');
+      btn.className = 'btn ' + (danger ? 'btn--danger cta-danger' : 'btn--orange cta-orange') + (unlocked > 0 ? '' : ' cta-disabled');
       btn.textContent = danger
-        ? `UNLOCK ${fmtHM(spent)} → ${fmtHM(remain)}`
-        : `UNLOCK ${fmtHM(spent)}`;
+        ? `UNLOCK ${fmtHM(unlocked)} → ${fmtHM(remain)}`
+        : `UNLOCK ${fmtHM(unlocked)}`;
     }
 
     function flash(el) {
@@ -72,11 +89,12 @@ export default {
 
     function build() {
       refs = {};
-      const spent = spentSec();
+      const unlocked = unlockedSec();
+      const debit = debitSec();
+      const divisor = spendDivisorFor(draft.app);
       const balance = store.balanceSec();
-      const remain = balance - spent;
+      const remain = balance - debit;
       const todaySpends = store.entriesSorted().filter(e => e.type === 'spend').slice(0, 5);
-      const canCommit = spent > 0;
 
       const bankedChip = chip(`BANKED ${fmtHM(balance)}`, 'orange');
       refs.bankedChip = bankedChip;
@@ -95,10 +113,12 @@ export default {
 
       // ---- app select ----
       const appRow = h('div', { class: 'app-select' },
-        APPS.map(a => h('button', {
-          class: 'app-btn' + (draft.app === a.id ? ' active' : ''),
-          onClick: () => { vibrate(15); draft.app = a.id; persist(); build(); }
-        }, a.label))
+        APPS.map(a => a.wip
+          ? h('button', { class: 'app-btn app-btn--wip', disabled: 'disabled', 'aria-disabled': 'true' }, a.label)
+          : h('button', {
+              class: 'app-btn' + (draft.app === a.id ? ' active' : ''),
+              onClick: () => { vibrate(15); draft.app = a.id; persist(); build(); }
+            }, a.label))
       );
 
       // ---- stopwatch / manual panel ----
@@ -144,7 +164,7 @@ export default {
             }, 'RESET')
           ])
         ]);
-        updateSeg(segBox, clock(spent), '#ffc478', 26);
+        updateSeg(segBox, clock(unlocked), '#ffc478', 26);
       } else {
         const manualBody = typingManual
           ? h('input', {
@@ -199,13 +219,16 @@ export default {
       }
 
       // ---- balance preview ----
-      const spendCell = h('div', { class: 'preview-value' }, '−' + fmtHM(spent));
+      // SPEND shows what actually leaves the bank, which is not the same
+      // as the unlock duration on a discounted app — so the label carries
+      // the rate ("SPEND ÷ 3") to explain why 15M unlocked costs 5M.
+      const spendCell = h('div', { class: 'preview-value' }, '−' + fmtHM(debit));
       const remainCell = h('div', { class: 'preview-value' + (remain < 0 ? ' preview-value--danger' : '') }, fmtHM(remain));
       refs.spendCell = spendCell;
       refs.remainCell = remainCell;
       const preview = h('div', { class: 'tile-grid-3' }, [
         h('div', { class: 'preview-cell' }, [h('div', { class: 'preview-label', style: { color: 'var(--fg-42)' } }, 'BANKED'), h('div', { class: 'preview-value' }, fmtHM(balance))]),
-        h('div', { class: 'preview-cell' }, [h('div', { class: 'preview-label', style: { color: 'var(--orange)' } }, 'SPEND'), spendCell]),
+        h('div', { class: 'preview-cell' }, [h('div', { class: 'preview-label', style: { color: 'var(--orange)' } }, divisor === 1 ? 'SPEND' : `SPEND ÷ ${divisor}`), spendCell]),
         h('div', { class: 'preview-cell' }, [h('div', { class: 'preview-label', style: { color: 'var(--mint)' } }, 'REMAINING'), remainCell])
       ]);
 
@@ -216,19 +239,21 @@ export default {
       // ---- CTA ----
       const ctaBtn = h('button', { class: 'btn' }, '');
       refs.ctaBtn = ctaBtn;
-      refreshCta(ctaBtn, spent, remain);
+      refreshCta(ctaBtn, unlocked, remain);
       ctaBtn.addEventListener('click', () => {
-        if (spentSec() <= 0) return;
+        const worked = unlockedSec();
+        if (worked <= 0) return;
         vibrate(25);
-        const worked = spentSec();
         const now = Date.now();
         const entry = {
           id: newId(),
           type: 'spend',
           category: null,
           app: draft.app,
+          // workedSec is the unlock duration; deltaSec is what it cost.
+          // They differ on discounted apps, and the ledger needs both.
           workedSec: worked,
-          deltaSec: -worked,
+          deltaSec: -debitSecFor(draft.app, worked),
           startedAt: draft.mode === 'stopwatch' ? draft.sessionStartedAt : null,
           endedAt: now,
           source: draft.mode === 'stopwatch' ? 'stopwatch' : 'manual'

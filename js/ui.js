@@ -1,5 +1,5 @@
 // Small shared DOM-building & formatting helpers used by every view.
-import { fmtHM, timeLabel, DIVISOR } from './format.js';
+import { fmtHM, timeLabel, DIVISOR, spendDivisorFor } from './format.js';
 
 // Tiny hyperscript-ish element builder. No vdom — every view does a full
 // rebuild on state change, which is cheap at this app's scale (§8).
@@ -29,7 +29,7 @@ export function vibrate(ms) {
 }
 
 export const CATEGORY_LABEL = { schoolwork: 'SCHOOLWORK', personal: 'PERSONAL' };
-export const APP_LABEL = { TIKTOK: 'TIKTOK', INSTAGRAM: 'INSTAGRAM', AUXILIARY: 'AUX' };
+export const APP_LABEL = { TIKTOK: 'TIKTOK', INSTAGRAM: 'INSTAGRAM', AUXILIARY: 'AUX', YOUTUBE: 'YOUTUBE' };
 
 function signedDelta(sec) {
   return sec >= 0 ? '+' + fmtHM(sec) : fmtHM(sec);
@@ -39,21 +39,19 @@ function signedDelta(sec) {
 export function entryCard(entry, opts) {
   opts = opts || {};
   const isEarn = entry.type === 'earn';
+  // Spend rows name the unlock duration too, not just the cost — on a
+  // discounted app those differ, and "YOUTUBE · 15M UNLOCKED ... −5M" is
+  // the only way the row explains itself.
   const title = isEarn
     ? `${CATEGORY_LABEL[entry.category]} · ${fmtHM(entry.workedSec)} FOCUS`
-    : `${APP_LABEL[entry.app]} · UNLOCKED`;
+    : `${APP_LABEL[entry.app] || entry.app} · ${fmtHM(entry.workedSec)} UNLOCKED`;
 
-  let sub;
-  if (isEarn) {
-    const tail = `÷ ${DIVISOR[entry.category]}`;
-    sub = entry.source === 'stopwatch' && entry.startedAt
-      ? `${timeLabel(entry.startedAt)} → ${timeLabel(entry.endedAt)} · ${tail}`
-      : `${timeLabel(entry.endedAt)} · ${tail}`;
-  } else {
-    sub = entry.source === 'stopwatch' && entry.startedAt
-      ? `${timeLabel(entry.startedAt)} → ${timeLabel(entry.endedAt)} · SPENT`
-      : `${timeLabel(entry.endedAt)} · SPENT`;
-  }
+  const rate = isEarn
+    ? `÷ ${DIVISOR[entry.category]}`
+    : (spendDivisorFor(entry.app) === 1 ? 'SPENT' : `÷ ${spendDivisorFor(entry.app)}`);
+  const sub = entry.source === 'stopwatch' && entry.startedAt
+    ? `${timeLabel(entry.startedAt)} → ${timeLabel(entry.endedAt)} · ${rate}`
+    : `${timeLabel(entry.endedAt)} · ${rate}`;
 
   const mainChildren = [
     h('div', { class: 'entry-title' }, title),

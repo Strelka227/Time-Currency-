@@ -8,6 +8,19 @@ export function creditSecFor(category, workedSec) {
   return Math.round(workedSec / DIVISOR[category]);
 }
 
+// What an unlocked minute actually costs the bank, per app. Most feeds
+// debit 1:1. YouTube is discounted 3:1 — 15 unlocked minutes only cost 5.
+// Unknown ids fall back to 1:1 so a bad value can never make time free.
+export const SPEND_DIVISOR = { TIKTOK: 1, INSTAGRAM: 1, AUXILIARY: 1, YOUTUBE: 3 };
+
+export function spendDivisorFor(app) {
+  return SPEND_DIVISOR[app] || 1;
+}
+
+export function debitSecFor(app, unlockedSec) {
+  return Math.round(unlockedSec / spendDivisorFor(app));
+}
+
 // Signed floor to whole minutes. Positive rounds down (never claim time you
 // don't have); negative rounds away from zero (never understate a debt).
 // 9000 -> "2H 30M", 450 -> "7M", -330 -> "-6M", 0 -> "0M"
@@ -24,19 +37,25 @@ function plural(n, word) {
   return `${n} ${word}${n === 1 ? '' : 's'}`;
 }
 
-// Same signed-floor rule as fmtHM, but spelled out — for the one spot
-// (Home's hero balance) with room to say "Minutes" instead of "M".
-// 9000 -> "2 Hours 30 Minutes", 60 -> "1 Minute", -330 -> "-6 Minutes"
-export function fmtLongMinutes(sec) {
+// Same signed-floor rule as fmtHM, spelled out and split into its own
+// hours / minutes pieces so Home can stack them on separate rows rather
+// than letting "2 Hours 30 Minutes" wrap mid-phrase at narrow widths.
+// 9000 -> {sign:'',  hours:'2 Hours', minutes:'30 Minutes'}
+// 3600 -> {sign:'',  hours:'1 Hour',  minutes:null}
+//  450 -> {sign:'',  hours:null,      minutes:'7 Minutes'}
+// -330 -> {sign:'−', hours:null,      minutes:'6 Minutes'}
+export function fmtLongParts(sec) {
   const m = Math.floor(sec / 60);
   const a = Math.abs(m);
   const h = Math.floor(a / 60);
   const mm = a % 60;
-  let body;
-  if (h > 0 && mm > 0) body = `${plural(h, 'Hour')} ${plural(mm, 'Minute')}`;
-  else if (h > 0) body = plural(h, 'Hour');
-  else body = plural(mm, 'Minute');
-  return (m < 0 ? MINUS : '') + body;
+  return {
+    sign: m < 0 ? MINUS : '',
+    hours: h > 0 ? plural(h, 'Hour') : null,
+    // Keep the minutes row whenever there is no hours row, so "0 Minutes"
+    // still renders exactly one line instead of nothing.
+    minutes: (mm > 0 || h === 0) ? plural(mm, 'Minute') : null
+  };
 }
 
 // HH:MM:SS clock, always non-negative.
