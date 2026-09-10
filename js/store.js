@@ -1,5 +1,6 @@
 // State, persistence, derived values. PLAN.md §8.
 import { isSameDay, startOfDayMs } from './format.js';
+import { DEFAULT_CONDITION, clampCondition } from './conditions.js';
 
 const KEY = 'timecurrency.v1';
 
@@ -7,6 +8,8 @@ function defaultState() {
   return {
     version: 1,
     entries: [],
+    // Which rule set is currently being followed (design turn 4).
+    condition: DEFAULT_CONDITION,
     draft: {
       earn: { mode: 'stopwatch', category: 'schoolwork', manualMin: 45,
         running: false, startedAt: null, accumulatedSec: 0, sessionStartedAt: null },
@@ -27,6 +30,9 @@ function load() {
       earn: { ...d.draft.earn, ...(parsed.draft && parsed.draft.earn) },
       spend: { ...d.draft.spend, ...(parsed.draft && parsed.draft.spend) }
     };
+    // Ledgers saved before the condition system have no such field;
+    // clampCondition folds both missing and out-of-range values to the default.
+    parsed.condition = clampCondition(parsed.condition);
     return parsed;
   } catch {
     return defaultState();
@@ -52,6 +58,16 @@ export const store = {
   subscribe(fn) {
     listeners.add(fn);
     return () => listeners.delete(fn);
+  },
+
+  conditionIndex() {
+    return clampCondition(state.condition);
+  },
+
+  setCondition(i) {
+    state.condition = clampCondition(i);
+    persist();
+    notify();
   },
 
   balanceSec() {

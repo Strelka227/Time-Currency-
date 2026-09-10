@@ -3,7 +3,7 @@
 // shows the projected balance before committing.
 import { store } from '../store.js';
 import { fmtHM, clock, hhmm, newId, debitSecFor, spendDivisorFor } from '../format.js';
-import { h, divider, entryCard, emptyCard, vibrate, chip } from '../ui.js';
+import { h, divider, entryCard, emptyCard, vibrate, chip, conditionLamp } from '../ui.js';
 import { updateSeg } from '../seg.js';
 import * as sw from '../stopwatch.js';
 
@@ -271,8 +271,8 @@ export default {
       const view = h('div', { class: 'view' }, [
         h('div', { class: 'view-scroll' }, [
           h('div', { class: 'view-header' }, [
-            h('div', { class: 'screen-title' }, 'SPEND / UNLOCK'),
-            bankedChip
+            h('div', { class: 'screen-title' }, 'SPEND'),
+            h('div', { class: 'header-group' }, [conditionLamp(), bankedChip])
           ]),
           modeRow,
           appRow,

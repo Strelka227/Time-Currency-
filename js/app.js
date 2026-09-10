@@ -3,15 +3,17 @@ import homeView from './views/home.js';
 import earnView from './views/earn.js';
 import spendView from './views/spend.js';
 import logView from './views/log.js';
+import conditionView from './views/condition.js';
 import { registerServiceWorker, requestPersistentStorage } from './pwa.js';
 
-const VIEWS = { home: homeView, earn: earnView, spend: spendView, log: logView };
+const VIEWS = { home: homeView, earn: earnView, spend: spendView, log: logView, condition: conditionView };
 
 const NAV_ITEMS = [
   { screen: 'home', shape: 'diamond', color: '#6ee7a8', glow: 'rgba(110,231,168,.7)' },
   { screen: 'earn', shape: 'square', color: '#a8e85f', glow: 'rgba(168,232,95,.7)' },
   { screen: 'spend', shape: 'triangle', color: '#ffab4d', glow: 'rgba(255,171,77,.7)' },
-  { screen: 'log', shape: 'bars', color: '#6ee7a8', glow: 'rgba(110,231,168,.7)' }
+  { screen: 'log', shape: 'bars', color: '#6ee7a8', glow: 'rgba(110,231,168,.7)' },
+  { screen: 'condition', shape: 'hex', color: '#a8e85f', glow: 'rgba(168,232,95,.7)' }
 ];
 
 const appEl = document.getElementById('app');
@@ -34,8 +36,10 @@ function buildGlyphSvg(shape) {
   svg.setAttribute('height', '16');
   svg.classList.add('nav-glyph-svg');
 
-  if (shape === 'diamond' || shape === 'triangle') {
-    const points = shape === 'diamond' ? '8,1 15,8 8,15 1,8' : '8,1 15,15 1,15';
+  if (shape === 'diamond' || shape === 'triangle' || shape === 'hex') {
+    const points = shape === 'diamond' ? '8,1 15,8 8,15 1,8'
+      : shape === 'triangle' ? '8,1 15,15 1,15'
+      : '8,1 15,4.75 15,11.25 8,15 1,11.25 1,4.75';
     const poly = document.createElementNS(SVGNS, 'polygon');
     poly.setAttribute('points', points);
     poly.classList.add('nav-glyph-shape');

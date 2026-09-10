@@ -2,7 +2,7 @@
 // replacing the design's ×1.5/×1.00, and uppercase H/M (§3.1) via fmtHM.
 import { store } from '../store.js';
 import { fmtHM, clock, hhmm, creditSecFor, newId, DIVISOR } from '../format.js';
-import { h, divider, entryCard, emptyCard, vibrate, chip } from '../ui.js';
+import { h, divider, entryCard, emptyCard, vibrate, chip, conditionLamp } from '../ui.js';
 import { updateSeg } from '../seg.js';
 import * as sw from '../stopwatch.js';
 
@@ -246,8 +246,8 @@ export default {
       const view = h('div', { class: 'view' }, [
         h('div', { class: 'view-scroll' }, [
           h('div', { class: 'view-header' }, [
-            h('div', { class: 'screen-title' }, 'EARN / LOG FOCUS'),
-            bankedChip
+            h('div', { class: 'screen-title' }, 'EARN'),
+            h('div', { class: 'header-group' }, [conditionLamp(), bankedChip])
           ]),
           modeRow,
           ioPanel,

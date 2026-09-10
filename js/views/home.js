@@ -2,7 +2,8 @@
 // bar and daily cap (§3.3), plus the negative/debt treatment (§1.2).
 import { store } from '../store.js';
 import { fmtHM, fmtLongParts } from '../format.js';
-import { h, divider, entryCard, emptyCard, vibrate, chip } from '../ui.js';
+import { h, divider, entryCard, emptyCard, vibrate, chip, conditionLamp } from '../ui.js';
+import { conditionAt, applyLampVars } from '../conditions.js';
 import { installPrompt } from '../pwa.js';
 
 function nowLabel() {
@@ -31,22 +32,47 @@ export default {
 
       clockChipEl = chip(nowLabel());
 
-      const headerRight = [];
+      // Lamp + INSTALL + clock together overflow the 268px header at Pixel
+      // widths. The INSTALL chip is transient and only appears until the app
+      // is installed, and Android already shows the time in its own status
+      // bar right above, so the clock yields to it for that short window.
+      const headerRight = [conditionLamp()];
       if (installPrompt.available) {
         headerRight.push(chip('INSTALL', 'orange', () => {
           vibrate(15);
           installPrompt.request();
         }));
+      } else {
+        headerRight.push(clockChipEl);
       }
-      headerRight.push(clockChipEl);
+
+      // ---- current condition (design 4a) ----
+      const cond = conditionAt(store.conditionIndex());
+      const condPanel = h('div', { class: 'cond-panel' }, [
+        h('div', { class: 'panel-label' }, 'CURRENT CONDITION'),
+        h('div', { class: 'cond-lamp-housing', style: { marginTop: '10px' } }, [
+          applyLampVars(
+            h('div', { class: 'cond-lamp-big' }, [
+              h('span', { class: 'cond-lamp-label' }, cond.name)
+            ]),
+            cond
+          )
+        ]),
+        h('div', { class: 'cond-desc' }, cond.desc),
+        cond.note ? h('div', { class: 'cond-note' }, cond.note) : null
+      ]);
+      // The lamp label sits on the lamp itself, so its colour follows the
+      // lamp's brightness rather than the app's text palette.
+      condPanel.style.setProperty('--cond-label', cond.labelColor);
 
       const view = h('div', { class: 'view' }, [
         h('div', { class: 'view-scroll' }, [
           h('div', { class: 'view-header' }, [
             h('div', { class: 'screen-title' }, 'LEDGER / HOME'),
-            h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center' } }, headerRight)
+            h('div', { class: 'header-group' }, headerRight)
           ]),
 
+          condPanel,
           h('div', { class: 'panel-glass' + (negative ? ' panel-glass--danger' : '') }, [
             h('div', { class: 'panel-row' }, [
               h('div', { class: 'panel-label' + (negative ? ' panel-label--accent-danger' : '') }, 'SPENDABLE TIME'),

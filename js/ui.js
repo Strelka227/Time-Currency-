@@ -1,5 +1,7 @@
 // Small shared DOM-building & formatting helpers used by every view.
 import { fmtHM, timeLabel, DIVISOR, spendDivisorFor } from './format.js';
+import { conditionAt, applyLampVars } from './conditions.js';
+import { store } from './store.js';
 
 // Tiny hyperscript-ish element builder. No vdom — every view does a full
 // rebuild on state change, which is cheap at this app's scale (§8).
@@ -95,4 +97,13 @@ export function chip(text, variant, onClick) {
   return onClick
     ? h('button', { class: cls + ' chip-btn', onClick }, text)
     : h('div', { class: cls }, text);
+}
+
+// The condition indicator lamp that sits in the Home / Earn / Spend
+// headers (design 4a, and the updated 3a/3b). Reads current condition
+// from the store at call time, so every header stays in sync.
+export function conditionLamp() {
+  const cond = conditionAt(store.conditionIndex());
+  const lamp = applyLampVars(h('span', { class: 'cond-lamp-sm', title: `Condition: ${cond.name}` }), cond);
+  return lamp;
 }
