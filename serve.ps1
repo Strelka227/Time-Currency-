@@ -1,0 +1,57 @@
+param(
+  [string]$Root = "$PSScriptRoot\app",
+  [int]$Port = 8080
+)
+
+$mimeMap = @{
+  '.html' = 'text/html; charset=utf-8'
+  '.css'  = 'text/css; charset=utf-8'
+  '.js'   = 'text/javascript; charset=utf-8'
+  '.json' = 'application/json; charset=utf-8'
+  '.webmanifest' = 'application/manifest+json; charset=utf-8'
+  '.woff2' = 'font/woff2'
+  '.svg'  = 'image/svg+xml'
+  '.png'  = 'image/png'
+  '.ico'  = 'image/x-icon'
+}
+
+$listener = New-Object System.Net.HttpListener
+$listener.Prefixes.Add("http://localhost:$Port/")
+$listener.Start()
+Write-Output "Serving $Root at http://localhost:$Port/"
+
+while ($listener.IsListening) {
+  try {
+    $ctx = $listener.GetContext()
+  } catch { break }
+  $req = $ctx.Request
+  $res = $ctx.Response
+  try {
+    $path = [Uri]::UnescapeDataString($req.Url.AbsolutePath)
+    if ($path -eq '/') { $path = '/index.html' }
+    $full = Join-Path $Root ($path.TrimStart('/'))
+    $full = [System.IO.Path]::GetFullPath($full)
+    if (-not $full.StartsWith([System.IO.Path]::GetFullPath($Root))) {
+      $res.StatusCode = 403
+      $res.Close()
+      continue
+    }
+    if (Test-Path $full -PathType Leaf) {
+      $ext = [System.IO.Path]::GetExtension($full)
+      $ct = $mimeMap[$ext]
+      if (-not $ct) { $ct = 'application/octet-stream' }
+      $res.ContentType = $ct
+      $bytes = [System.IO.File]::ReadAllBytes($full)
+      $res.ContentLength64 = $bytes.Length
+      $res.OutputStream.Write($bytes, 0, $bytes.Length)
+    } else {
+      $res.StatusCode = 404
+      $bytes = [System.Text.Encoding]::UTF8.GetBytes("404 Not Found: $path")
+      $res.OutputStream.Write($bytes, 0, $bytes.Length)
+    }
+  } catch {
+    try { $res.StatusCode = 500 } catch {}
+  } finally {
+    $res.Close()
+  }
+}
