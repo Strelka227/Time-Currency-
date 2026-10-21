@@ -30,7 +30,8 @@ export function vibrate(ms) {
   } catch { /* not supported */ }
 }
 
-export const CATEGORY_LABEL = { schoolwork: 'SCHOOLWORK', personal: 'PERSONAL' };
+// Insertion order is the left-to-right order of the Earn category tiles.
+export const CATEGORY_LABEL = { schoolwork: 'SCHOOLWORK', personal: 'PERSONAL', lecture: 'LECTURE' };
 export const APP_LABEL = { TIKTOK: 'TIKTOK', INSTAGRAM: 'INSTAGRAM', AUXILIARY: 'AUX', YOUTUBE: 'YOUTUBE' };
 
 function signedDelta(sec) {

@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "Time Currency",
+  "short_name": "Currency",
+  "description": "Earn feed time by logging focused work.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#050b08",
+  "theme_color": "#0a1a13",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Log focus", "short_name": "Earn", "url": "./index.html#/earn" },
+    { "name": "Spend", "short_name": "Spend", "url": "./index.html#/spend" }
+  ]
+}

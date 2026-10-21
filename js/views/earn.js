@@ -2,7 +2,7 @@
 // replacing the design's ×1.5/×1.00, and uppercase H/M (§3.1) via fmtHM.
 import { store } from '../store.js';
 import { fmtHM, clock, hhmm, creditSecFor, newId, DIVISOR } from '../format.js';
-import { h, divider, entryCard, emptyCard, vibrate, chip, conditionLamp } from '../ui.js';
+import { h, divider, entryCard, emptyCard, vibrate, chip, conditionLamp, CATEGORY_LABEL } from '../ui.js';
 import { updateSeg } from '../seg.js';
 import * as sw from '../stopwatch.js';
 
@@ -176,22 +176,15 @@ export default {
       }
 
       // ---- category tiles ----
-      const catRow = h('div', { class: 'tile-grid-2' }, [
-        h('button', {
-          class: 'tile' + (draft.category === 'schoolwork' ? ' active' : ''),
-          onClick: () => { vibrate(15); draft.category = 'schoolwork'; persist(); build(); }
+      const catRow = h('div', { class: 'tile-grid-cat' },
+        Object.keys(CATEGORY_LABEL).map(id => h('button', {
+          class: 'tile' + (draft.category === id ? ' active' : ''),
+          onClick: () => { vibrate(15); draft.category = id; persist(); build(); }
         }, [
-          h('div', { class: 'tile-name' }, 'SCHOOLWORK'),
-          h('div', { class: 'tile-rate' }, `÷ ${DIVISOR.schoolwork}`)
-        ]),
-        h('button', {
-          class: 'tile' + (draft.category === 'personal' ? ' active' : ''),
-          onClick: () => { vibrate(15); draft.category = 'personal'; persist(); build(); }
-        }, [
-          h('div', { class: 'tile-name' }, 'PERSONAL'),
-          h('div', { class: 'tile-rate' }, `÷ ${DIVISOR.personal}`)
-        ])
-      ]);
+          h('div', { class: 'tile-name' }, CATEGORY_LABEL[id]),
+          h('div', { class: 'tile-rate' }, `÷ ${DIVISOR[id]}`)
+        ]))
+      );
 
       // ---- conversion strip ----
       const inputVal = h('div', { class: 'convert-value' }, fmtHM(worked));

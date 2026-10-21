@@ -2,7 +2,7 @@
 
 export const MINUS = '−'; // U+2212, matches the design's glyph
 
-export const DIVISOR = { schoolwork: 4, personal: 6 };
+export const DIVISOR = { schoolwork: 4, personal: 6, lecture: 8 };
 
 export function creditSecFor(category, workedSec) {
   return Math.round(workedSec / DIVISOR[category]);
